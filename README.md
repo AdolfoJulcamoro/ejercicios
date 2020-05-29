@@ -13,7 +13,8 @@ Para ejecutar los ejercicios es necesario contar con:
 * Una cuenta en GCP
 * Un projecto en GCP
 * Las siguientes API's habilitadas en el proyecto: Compute Engine, Kubernetes Engine y Cloud Build 
-* Un [Service Account](https://cloud.google.com/iam/docs/service-accounts) con los roles necesarios para manipular el proyecto (Kubernetes Engine Admin, Project Editor y Storage Admin)
+* Un [Service Account](https://cloud.google.com/iam/docs/service-accounts) con los roles necesarios para manipular el proyecto (Kubernetes Engine Admin, Project Editor y Storage Admin).
+* Las credenciales de la Service Account como JSON
 
 
 ### Instalación
@@ -42,9 +43,10 @@ $ ./build.sh
 Elige una opción [1-4]:
 ```
 
-* La primera opción (*Desplegar cluster*) hace uso de terraform para desplegar un cluster en GCP, también instala una aplicación python y la expone con Ingress
+* La primera opción (*Desplegar cluster*) hace uso de terraform para desplegar un cluster en GCP, también instala una aplicación python y la expone con Ingress. Esta opción te va a solicitar Project ID, email de Service Account y la ruta del archivo JSON con las credenciales de Service Account
 * La segunda opción destruye el ambiente creado en GCP
 * La tercera opción muestra el resultado de *Terraform output*
+
 
 
 > Jenkins
@@ -62,6 +64,6 @@ $ ./build.sh
 Elige una opción [1-4]:
 ```
 
-* La primera opción (*Desplegar cluster*) hace uso de terraform para desplegar un cluster en GCP. Luego, usando Ansible, despliega una VM, Jenkins, crea una Shared Library y un Job que la consume.
+* La primera opción (*Desplegar cluster*) hace uso de terraform para desplegar un cluster en GCP. Luego, usando Ansible, despliega una VM, Jenkins, crea una Shared Library y un Job que la consume. Esta opción te va a solicitar Project ID, email de Service Account y la ruta del archivo JSON con las credenciales de Service Account
 * La segunda opción destruye el ambiente creado en GCP
 * La tercera opción muestra el resultado de *Terraform output*
