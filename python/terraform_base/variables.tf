@@ -1,37 +1,32 @@
 variable "credentials" {
   type        = string
-  description = "Location of the credentials keyfile."
+  description = "Path para el archivo de credenciales (.json)."
 }
 
 variable "project_id" {
   type        = string
-  description = "The project ID to host the cluster in."
+  description = "El project ID donde se instalara el cluster."
 }
 
 variable "region" {
   type        = string
-  description = "The region to host the cluster in."
+  description = "Region para el cluster."
 }
 
 variable "zones" {
   type        = list(string)
-  description = "The zones to host the cluster in."
+  description = "Listado de zonas para el cluster."
 }
 
 variable "machine_type" {
   type        = string
-  description = "Type of the node compute engines."
+  description = "Tipo de maquina segun compute engines."
 }
 
 variable "service_account" {
   type        = string
-  description = "The service account to run nodes as if not overridden in `node_pools`. The create_service_account variable default value (true) will cause a cluster-specific service account to be created."
+  description = "Service account para la ejecucion de las tareas."
 }
-
-#variable "initial_node_count" {
-#  type        = number
-#  description = "The number of nodes to create in this cluster's default node pool."
-#}
 
 variable "service_name" {
   type        = string
