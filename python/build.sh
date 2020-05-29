@@ -41,8 +41,8 @@ read_option(){
             read sap
             create $pi $sae "$sap"
             ;;
-        2) destroy; break ;;
-        3) salida; break ;;
+        2) destroy ;;
+        3) salida ;;
         4) exit 0 ;;
         *) echo "${RED}Opción incorrecta";;
     esac
