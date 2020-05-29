@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-#sh ./build.sh helical-sanctum-277902 terraform@helical-sanctum-277902.iam.gserviceaccount.com /home/adolfo/kube/creds/serviceaccount.json
-#export PROJECT_ID=helical-sanctum-277902
-#export SERVICE_ACCOUNT_EMAIL=terraform@helical-sanctum-277902.iam.gserviceaccount.com
-#export SERVICE_ACCOUNT_JSON_PATH=/home/adolfo/kube/creds/serviceaccount.json
 usage() {
   echo "Los parámetros de entrada: PROJECT_ID, SERVICE_ACCOUNT_EMAIL y SERVICE_ACCOUNT_JSON_PATH, en ese orden, son necesarios"
   exit 1
@@ -22,7 +18,7 @@ show_menu(){
 
 read_option(){
     RED='\033[0;31m'
-    NC='\033[0m' # No Color
+    NC='\033[0m'
 
     echo -n "Elige una opción [1-4]:"
     read option
@@ -156,9 +152,3 @@ show_menu
 read_option
 
 exit 0
-
-#echo "***** Restaurando plantillas"
-#sed -i 's@'"$SERVICE_ACCOUNT_JSON_PATH"'@service_account_json_file_@g' $PATH_TERRAFORM/variables.auto.tfvars
-#sed -i 's/'"$PROJECT_ID"'/project_id_/g' $PATH_TERRAFORM/variables.auto.tfvars
-#sed -i 's/'"$SERVICE_ACCOUNT_EMAIL"'/service_account_email_/g' $PATH_TERRAFORM/variables.auto.tfvars
-#sed -i 's/'"$SERVICE_NAME"'/service_name_/g' $PATH_TERRAFORM/variables.auto.tfvars
