@@ -20,7 +20,7 @@ Para ejecutar los ejercicios es necesario contar con:
 * Clona el repositorio
 * Ambas carpetas (python y jenkins) contienen una shell que orquesta todo el proceso de despliegue, conviértelas en ejecutables:
 ```shell
-$ chmod +x ./build.sh 
+$ chmod +x build.sh 
 ```
 
 ## Ejecutando los ejercicios
@@ -29,6 +29,8 @@ Ingresa a la carpeta del ejercicio que deseas probar y ejecuta *build.sh*. Un me
 
 > Python
 ```shell
+$ ./build.sh
+
 ----------------------------------------------
  ********** Opciones ********** 
 ----------------------------------------------
@@ -44,8 +46,11 @@ Elige una opción [1-4]:
 * La segunda opción destruye el ambiente creado en GCP
 * La tercera opción muestra el resultado de *Terraform output*
 
+
 > Jenkins
 ```shell
+$ ./build.sh
+
 ----------------------------------------------
  ********** Opciones ********** 
 ----------------------------------------------
