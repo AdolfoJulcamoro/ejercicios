@@ -1,0 +1,307 @@
+---
+- hosts: jenkins
+  vars: 
+    #jenkins_package_state: present
+    
+    #jenkins_prefer_lts: false
+    
+    #jenkins_connection_delay: 5
+    #jenkins_connection_retries: 60
+    jenkins_home: /var/lib/jenkins
+    #jenkins_hostname: localhost
+    #jenkins_http_port: 8080
+    jenkins_jar_location: /opt/jenkins-cli.jar
+    #jenkins_url_prefix: ""
+    #jenkins_java_options: "-Djenkins.install.runSetupWizard=false"
+    
+    jenkins_init_file: /etc/sysconfig/jenkins
+    #jenkins_http_port_param: JENKINS_PORT
+    #jenkins_java_options_env_var: JENKINS_JAVA_OPTIONS
+
+    # Plugin list can use the plugin name, or a name/version dict.
+    jenkins_plugins: #[]
+    - git
+    - job-dsl
+    - workflow-aggregator
+    - workflow-cps
+    
+    jenkins_plugins_state: present
+    jenkins_plugin_updates_expiration: 86400
+    jenkins_plugin_timeout: 30
+    jenkins_plugins_install_dependencies: true
+    jenkins_updates_url: "https://updates.jenkins.io"
+    
+    jenkins_admin_username: admin
+    jenkins_admin_password: admin
+    jenkins_admin_password_file: ""
+    
+    jenkins_process_user: jenkins
+    jenkins_process_group: "{{ jenkins_process_user }}"
+    
+    #jenkins_init_changes:
+      #- option: "JENKINS_ARGS"
+      #  value: "--prefix={{ jenkins_url_prefix }}"
+      #- option: "JENKINS_JAVA_OPTIONS"
+      #  value: "{{ jenkins_java_options }}"
+    
+    # If Jenkins is behind a proxy, configure this.
+    #jenkins_proxy_host: ""
+    #jenkins_proxy_port: ""
+    #jenkins_proxy_noproxy:
+    #  - "127.0.0.1"
+    #  - "localhost"
+
+    #jenkins_seed_name: pipeline-seed
+    #jenkins_seed_template: seed-config.xml.j2
+    #jenkins_job_template: jobs.groovy.j2
+  #roles:
+  #  - role: ansiblebit.oracle-java
+  #    oracle_java_set_as_default: yes
+  tasks:
+    #- name: Instalar Java 1.8
+    #  yum : 
+    #    name: java-1.8.0-openjdk 
+    #    update_cache: yes
+    #    state: present
+    #  become: yes
+    #- name: Instalar Git
+    #  yum:
+    #    name: git
+    #    update_cache: yes
+    #    state: present
+    #  become: yes
+    #- name: Instalar Maven
+    #  yum:
+    #    name: maven
+    #    update_cache: yes
+    #    state: present
+    #  become: yes
+    - name: Instalar dependencias
+      yum:
+        name:
+          - java-1.8.0-openjdk
+          - git
+          - maven
+          - python3
+          - python3-pip
+          - python3-setuptools
+        state: present
+        update_cache: yes
+      become: yes
+    - name: Instalar dependencias
+      yum:
+        name: libselinux-python
+        state: present
+        update_cache: yes
+      vars:
+        ansible_python_interpreter: /usr/bin/python2
+      become: yes  
+    - name: Instalar python-jenkins
+      pip:
+        name: python-jenkins
+        executable: pip3
+      vars:
+        ansible_python_interpreter: /usr/bin/python3
+      become: yes
+    - name: Repositorio Jenkins
+      yum_repository:
+        name: jenkins
+        description: Official Jenkins Yum Repo
+        state: present
+        baseurl: https://pkg.jenkins.io/redhat/
+        gpgkey: https://pkg.jenkins.io/redhat/jenkins.io.key
+        gpgcheck: yes
+        #repo_gpgcheck: no
+        enabled: yes
+      become: yes
+      become_method: sudo
+    - name: Instalar Jenkins
+      yum :
+        name: jenkins
+        update_cache: yes
+        state: present
+      become: yes
+      become_method: sudo
+  
+    - name: Deshabilitar Jenkins setup wizard
+      lineinfile: 
+        dest: /etc/sysconfig/jenkins 
+        regexp: '^JENKINS_JAVA_OPTIONS=' 
+        line: 'JENKINS_JAVA_OPTIONS="-Djava.awt.headless=true -Djenkins.install.runSetupWizard=false"'
+      become: yes
+      become_method: sudo
+    - name: Crear carpeta temporal para script inicial.
+      file:
+        path: "{{ jenkins_home }}/init.groovy.d"
+        state: directory
+        owner: "{{ jenkins_process_user }}"
+        group: "{{ jenkins_process_group }}"
+        mode: 0775
+      become: yes
+      become_method: sudo
+    - name: configure default users
+      template:
+        src: basic-security.groovy.j2
+        dest: "{{ jenkins_home }}/init.groovy.d/basic-security.groovy"
+        owner: "{{ jenkins_process_user }}"
+        group: "{{ jenkins_process_group }}"
+        mode: 0775
+      #register: jenkins_users_config
+      #notify: restart jenkins
+      become: yes
+    
+    - name: Iniciar el servicio Jenkins {{ jenkins_home }} 
+      service:
+        name: jenkins
+        enabled: yes
+        state: started
+      become: yes
+      become_method: sudo
+    - name: Abrir el puerto 8080 en el Firewall
+      firewalld:
+        zone: public
+        port: 8080/tcp
+        permanent: true
+        state: enabled
+        immediate: true
+      become: yes
+      become_method: sudo
+
+
+    - name: Esperar a que Jenkins inicie.
+      uri:
+        url: "http://localhost:8080/cli/"
+        method: GET
+        return_content: "yes"
+        timeout: 5
+        body_format: raw
+        follow_redirects: "no"
+        status_code: 200,403
+      register: result
+      until: (result.status == 403 or result.status == 200) and (result.content.find("Please wait while") == -1)
+      retries: 60
+      delay: 5
+      changed_when: false
+      check_mode: false
+    - name: Obtener jenkins-cli jarfile del Jenkins server.
+      get_url:
+        url: "http://localhost:8080/jnlpJars/jenkins-cli.jar"
+        dest: "{{ jenkins_jar_location }}"
+      register: jarfile_get
+      until: "'OK' in jarfile_get.msg or '304' in jarfile_get.msg or 'file already exists' in jarfile_get.msg"
+      retries: 5
+      delay: 10
+      check_mode: false
+      become: yes
+    - name: Remover carpeta de script inicial.
+      file:
+        path: "{{ jenkins_home }}/init.groovy.d/basic-security.groovy"
+        state: absent
+      become: yes
+    - name: Obtener password de Jenkins admin desde el archivo por defecto.
+      slurp:
+        src: "{{ jenkins_admin_password_file }}"
+      register: adminpasswordfile
+      no_log: true
+      when: jenkins_admin_password_file | default(false)
+      tags: ['skip_ansible_lint']
+      become: yes
+    - name: Actualizar variable de password.
+      set_fact:
+        jenkins_admin_password: "{{ adminpasswordfile['stdout'] | default(jenkins_admin_password) }}"
+      no_log: true
+    - name: Crear carpeta para actualizaciones.
+      file:
+        path: "{{ jenkins_home }}/updates"
+        state: directory
+        owner: jenkins
+        group: jenkins
+      become: yes
+    - name: Descargar lista de plugins.
+      get_url:
+        url: "{{ jenkins_updates_url }}/update-center.json"
+        dest: "{{ jenkins_home }}/updates/default.json"
+        owner: jenkins
+        group: jenkins
+        mode: 0440
+      changed_when: false
+      register: get_result
+      until: get_result is success
+      retries: 10
+      delay: 2
+      become: yes
+    - name: Limpiar JSON descargado.
+      replace:
+        path: "{{ jenkins_home }}/updates/default.json"
+        regexp: "1d;$d"
+      become: yes
+    - name: Instalar plugins para Jenkins plugins.
+      jenkins_plugin:
+        name: "{{ item.name | default(item) }}"
+        version: "{{ item.version | default(omit) }}"
+        jenkins_home: "{{ jenkins_home }}"
+        url_username: "{{ jenkins_admin_username }}"
+        url_password: "{{ jenkins_admin_password }}"
+        state: "{{ 'present' if item.version is defined else jenkins_plugins_state }}"
+        #timeout: "{{ jenkins_plugin_timeout }}"
+        #updates_expiration: "{{ jenkins_plugin_updates_expiration }}"
+        updates_url: "{{ jenkins_updates_url }}"
+        url: "http://localhost:8080"
+        with_dependencies: true #"{{ jenkins_plugins_install_dependencies }}"
+      with_items: "{{ jenkins_plugins }}"
+      when: jenkins_admin_password | default(false)
+      #notify: restart jenkins
+      tags: ['skip_ansible_lint']
+      register: plugin_result
+      until: plugin_result is success
+      retries: 5
+      delay: 5
+    - name: Reiniciar Jenkins
+      service:
+        name: jenkins
+        state: restarted
+      become: yes
+      become_method: sudo
+    
+    - name: Verificar si existe el archivo GlobalLibraries.xml
+      stat:
+        path: "{{ jenkins_home }}/org.jenkinsci.plugins.workflow.libs.GlobalLibraries.xml"
+      become: yes
+      register: stat_result
+    - name: Crear Shared Library
+      copy:
+        src: templates/firstlibrary.xml 
+        dest: "{{ jenkins_home }}/org.jenkinsci.plugins.workflow.libs.GlobalLibraries.xml"
+        owner: "{{ jenkins_process_user }}"
+        group: "{{ jenkins_process_group }}"
+        mode: 0775
+      vars:
+        ansible_python_interpreter: /usr/bin/python2
+      become: yes
+      when: not stat_result.stat.exists
+    - name: Crear Shared Library
+      xml:
+        path: "{{ jenkins_home }}/org.jenkinsci.plugins.workflow.libs.GlobalLibraries.xml"
+        xpath: GlobalLibraries/libraries
+        add_children:  "{{ items }}"
+        input_type: xml
+      with_items:
+        - <org.jenkinsci.plugins.workflow.libs.LibraryConfiguration><name>firstlibrary</name><retriever class="org.jenkinsci.plugins.workflow.libs.SCMSourceRetriever"><scm class="jenkins.plugins.git.GitSCMSource" plugin="git@4.2.2"><id>d47396ca-8fe1-4188-9933-716c5ae78371</id><remote>https://github.com/AdolfoJulcamoro/sharedlibhellomaven.git</remote><credentialsId></credentialsId><traits><jenkins.plugins.git.traits.BranchDiscoveryTrait/></traits></scm></retriever><defaultVersion>master</defaultVersion><implicit>false</implicit><allowVersionOverride>true</allowVersionOverride><includeInChangesets>true</includeInChangesets></org.jenkinsci.plugins.workflow.libs.LibraryConfiguration>
+      become: yes
+      when: stat_result.stat.exists
+    - name: Crear Job (firstjob)
+      jenkins_job:
+        config: "{{ lookup('file', 'templates/firstjob.xml') }}"
+        name: firstjob
+        url: http://localhost:8080
+        user: admin
+        password: admin
+      vars:
+        ansible_python_interpreter: /usr/bin/python3
+    - name: Reiniciar Jenkins
+      service:
+        name: jenkins
+        state: restarted
+      become: yes
+      become_method: sudo
+      
