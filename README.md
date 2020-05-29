@@ -64,6 +64,6 @@ $ ./build.sh
 Elige una opción [1-4]:
 ```
 
-* La primera opción (*Desplegar cluster*) hace uso de terraform para desplegar un cluster en GCP. Luego, usando Ansible, despliega una VM, Jenkins, crea una Shared Library y un Job que la consume. Esta opción te va a solicitar Project ID, email de Service Account y la ruta del archivo JSON con las credenciales de Service Account
+* La primera opción (*Desplegar cluster*) hace uso de terraform para desplegar un cluster en GCP. Luego, usando Ansible, despliega una VM, Jenkins, crea una Shared Library y un Job que la consume. Esta opción te va a solicitar Project ID, email de Service Account y la ruta del archivo JSON con las credenciales de Service Account. Las credenciales para Jenkins (admin:admin)
 * La segunda opción destruye el ambiente creado en GCP
 * La tercera opción muestra el resultado de *Terraform output*
